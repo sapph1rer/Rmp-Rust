@@ -1,0 +1,71 @@
+[package]
+name = "rmp"
+version = "0.1.0"
+edition = "2021"
+description = "Small native Windows video player (Media Foundation/DXVA + cpal + egui)"
+
+[dependencies]
+cpal = "0.15"
+eframe = { version = "0.27", default-features = false, features = ["default_fonts", "glow", "x11"] }
+oxideav-ac3 = "0.0.11"
+oxideav-core = "0.1"
+oxideav-dts = "0.0.2"
+truehd = "0.7.2"
+opus-decoder = "0.1"
+symphonia-codec-vorbis = "0.6"
+symphonia-core = "0.6"
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+ureq = { version = "2.12", default-features = false, features = ["gzip"] }
+rustybuzz = "0.20"
+ab_glyph = "0.2"
+oxideav-h265 = "0.0.14"
+oxideav-vp9 = "0.0.13"
+rav1d = { version = "1.1.0", default-features = false, features = ["bitdepth_8", "bitdepth_16"] }
+
+# native file dialogs (Linux: use drag & drop / Ctrl+L instead, keeps deps light)
+[target.'cfg(windows)'.dependencies]
+ureq = { version = "2.12", default-features = false, features = ["gzip", "native-tls"] }
+native-tls = "0.2"
+rfd = { version = "0.14", default-features = false }
+windows = { version = "0.61", features = [
+  "Win32_Foundation", "Win32_Media_MediaFoundation", "Win32_System_Com", "Win32_System_Com_StructuredStorage",
+  "Win32_System_Variant", "Win32_UI_Shell_PropertiesSystem", "Win32_Graphics_Direct3D", "Win32_Graphics_Direct3D11",
+  "Win32_Graphics_Dxgi", "Win32_Graphics_Dxgi_Common", "Win32_System_Threading",
+] }
+
+[profile.release]
+opt-level = 3
+lto = false          # fat LTO made release builds take 7+ minutes for a few percent
+codegen-units = 16
+incremental = true   # rebuilds after a small change take seconds instead of minutes
+panic = "unwind"
+strip = true
+
+# maximum-speed build for releases you hand out: cargo build --profile dist
+[profile.dist]
+inherits = "release"
+lto = "thin"
+codegen-units = 4
+incremental = false
+
+# the pure-Rust Opus decoder relies on wrapping shifts that debug builds would turn into panics
+[profile.dev.package.opus-decoder]
+overflow-checks = false
+[profile.test.package.opus-decoder]
+overflow-checks = false
+
+# speed for `cargo test` of the software video decoders
+[profile.dev.package.rav1d]
+opt-level = 3
+debug-assertions = false
+overflow-checks = false
+[profile.dev.package.oxideav-vp9]
+opt-level = 3
+debug-assertions = false
+overflow-checks = false
+[profile.dev.package.oxideav-h265]
+opt-level = 3
+debug-assertions = false
+overflow-checks = false
